@@ -1,0 +1,323 @@
+---
+title: "Detective Novels In A Nutshell"
+author: "Colin Sihan Yang, Xinxiang Gao, Ming Hon Yeung, Qian Yi"
+subtitle: "Group 55: Statistically Yours"
+date: December 3, 2021
+output:
+  beamer_presentation:
+    theme: "AnnArbor"
+    colortheme: "dolphin"
+    fonttheme: "structurebold"
+    slide_level: 2
+classoption: "aspectratio=169"
+fontsize: 11pt
+urlcolor: blue
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# echo=FALSE will stop the code chunk from appearing in the knit document
+# warning=FALSE and message=FALSE will stop R messages from appearing in the knit document
+library(tidyverse)
+
+# here is the data for this project
+detectives_full <- read_csv("detective_data.csv")
+detectives_full_clean <- detectives_full %>% 
+  select(number_of_victims_of_gender_male, number_of_victims_of_gender_female,number_of_culprits_of_gender_male,number_of_culprits_of_gender_female,number_of_culprits_of_gender_non_binary,number_of_culprits_of_gender_unknown,text_words
+         ,how_satisfying_is_this_story_as_a_piece_of_detective_fiction,sex,
+         text_words) %>% 
+  filter(!is.na(number_of_victims_of_gender_male) 
+         &!is.na(number_of_victims_of_gender_female)
+         &!is.na(number_of_culprits_of_gender_male)
+         &!is.na(number_of_culprits_of_gender_female)
+         &!is.na(number_of_culprits_of_gender_non_binary)
+         &!is.na(number_of_culprits_of_gender_unknown)
+         &!is.na(text_words)
+         &!is.na(how_satisfying_is_this_story_as_a_piece_of_detective_fiction)
+          &!is.na(sex)) %>% 
+  mutate(total_number_victims = number_of_victims_of_gender_male + number_of_victims_of_gender_female,
+         total_number_culprits = number_of_culprits_of_gender_male + number_of_culprits_of_gender_female + number_of_culprits_of_gender_non_binary + number_of_culprits_of_gender_unknown,
+         book_length = case_when(text_words < 7500 ~ "short book",
+                                 text_words >= 7500 ~ "long book"))
+
+```
+
+## Overall Introduction
+
+\begin{center}
+\includegraphics[width=6cm, height=3cm]{images/sta_image.jpeg}
+\end{center}
+
+Photo on[PennState Eberly College of Science](https://online.stat.psu.edu/statprogram/reviews)
+
+### Goals of The Project
+
+In this project, to help these two professors on their research, we want to obtain the detailed information of the detective stories and get to know some potential association between the characteristics of the stories from that period through statistical methods.
+
+
+## Data Summary
+
+### Variables
+
+- \textcolor{red}{total number victims}: the total number of male and female victims\
+- \textcolor{red}{total number culprits}: the total number of male, female, non-binary and unknown culprits.\ 
+- \textcolor{red}{sex}: The gender of detective story's author\
+- \textcolor{red}{text words}: The total number of words in story altogether 
+- \textcolor{red}{book length}: A binary categorical variable with "short book"(word_text <7500) and "long book"(word_text >= 7500)
+
+### Data_Wrangling
+
+\textcolor{red}{First}, we selected the variable we would like to discover.\
+\textcolor{red}{Second}, we filtered out the observations with NA values on the variable above. \
+\textcolor{red}{Third}, we created three more variables: \
+total number of victims by adding them together, \
+total number of culprits by adding them together as well, \
+and book length, dividing the novels into two groups by the
+    number of text words.
+
+
+
+## Research Question 1: One Group Hypothesis Test
+
+### Objective
+
+As a group, we are interested to find out if the proportion of female authors in the detective stories is the same as the proportion of females on a national level. 
+
+### Question Description
+
+Is the proportion of female authors in the detective novels the same as the proportion of females across the country? 
+
+### Variable Used
+
+The variable we will be using for this specific question is \textcolor{red}{sex}
+
+## Relevant Visualization
+```{r, echo=FALSE, fig.height=2, fig.width=4, fig.align='center'}
+ggplot(data = detectives_full_clean,aes(x = sex))+
+  geom_bar() +
+  labs(x = "sex", title = "Author Sex Distribution")
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# is the proportion of female author similar to the proportion of female in UK(constant)
+set.seed(666)
+
+repetitions <-1000
+results <- rep(NA, repetitions)
+n_obs <- nrow(detectives_full_clean)
+test_stat <- sum(detectives_full_clean$sex == "F")/n_obs
+
+for(i in 1:repetitions){
+  sim <- sample(c("F","M"), size=n_obs, prob = c(0.5059,0.4941), replace = TRUE)
+  p_female <- sum(sim == "F")/n_obs
+  results[i] <- p_female
+}
+results <- tibble(prop_female = results)
+
+#results %>% 
+  #ggplot(aes(x=prop_female)) +
+  #geom_histogram(bins=20,color='black',fill='grey') +
+  #geom_vline(xintercept = test_stat, color='red',size=2)+
+  #geom_vline(xintercept = 0.5059+abs(test_stat-0.5059), color='blue',size=2)+
+  #labs(x="proportion of female",
+       #title = "simulated values of proportion of female, assume H0(50.59%) is true")
+  
+
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#results %>% 
+  #filter(prop_female <= test_stat | prop_female >= 0.5059 + abs(test_stat - 0.5059)) #%>% 
+  #summarise(p_value = n()/repetitions, 
+            #test_stat = test_stat)
+
+```
+
+---
+
+### Sample
+
+The sample for this question is all the authors in the 352 detective stories.
+
+### Population
+
+All detective stories authors from early 1800s to early 1900s. 
+
+### Visualization Description
+
+From the barplot, we see that the distribution of sex for male is greater than female at a pretty significant level. We approximate that the number of female authors is 60, and the number of male authors is around 280. The number of male authors is approximately four times the number of female authors. 
+
+## Exploration
+
+- \textcolor{red}{Method}: one-proportion hypothesis test\
+- Parameter: $p_f$ is the proportion of female authors\
+- Null hypothesis $$H_0: p_f = 0.51$$ The proportion of female authors in the detective stories is 0.51, which is the national  female ratio.\
+-	Alternative hypothesis $$H_A: p_f \neq 0.51$$ The proportion of female authors in the detective stories is not       0.51. \
+
+ 
+
+## Conclusion and Limitation
+
+### Conclusion and Interpretation
+
+With a p-value equal to 0, there’s a very strong evidence against the null hypothesis that the proportion of female authors is 0.51, which is 51%. In other words, the proportion of female authors of the detective stories from early 1800 to early 1900 is not equal to the proportion of females on a national level. The possible reason could be during that period, male were more engaged in creating literature like detective novels.
+
+\vspace{0.3cm}
+
+### Limitations
+With the p-value that we get, our concern would be we might make a type 1 error in which we reject the null hypothesis, but it turns out the null hypothesis is true.
+
+## Research Question 2: Multiple Linear Regression  
+
+### Objective
+
+In this question, we want to use linear regression model to predict the total number of culprits based on the total number of victims and the length of books.  
+
+### Question Description
+
+Is there an association between total number of culprits and victims as well as book length?
+
+### Variable Used
+
+- \textcolor{red}{total number victims}\
+- \textcolor{red}{total number culprits}\
+- \textcolor{red}{book length}
+
+## Relevant Visualization
+```{r, echo=FALSE, fig.height=2, fig.width=4, fig.align='center'}
+detectives_full_clean %>% filter(total_number_culprits <1500) %>% 
+  ggplot(aes(x=total_number_victims, y = total_number_culprits)) +
+  geom_point()+
+  labs(title = "Related variable association")+
+  facet_wrap(~book_length)+
+  theme_minimal()
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#model <- lm(total_number_culprits ~ total_number_victims + book_length, data = detectives_full_clean)
+#summary(model)
+```
+
+---
+
+### Population
+
+Population is all the murder cases in the detective stories from early 1800s to early 1900s.
+
+\vspace{0.8cm}
+
+### Visualization
+
+According to the scatter plot, we could see a moderate positive linear association between the total number of victims and the total number of culprits. The strength of the association is similar between short books and long books.
+
+## Exploration
+
+- \textcolor{red}{Method}:  Multiple Linear Regression Model\
+- Response variable: number of culprits\
+- Predictor variable 1: length of the book\
+- Predictor variable 2: number of victims\
+
+## Conclusion and Limitations
+
+### Conclusion and Interpretation
+
+Because the p-values are relatively large, there’s no association between number of culprits, victims, or the length of the book. Perhaps, there might be a much larger number of variables that could affect the number of culprits in the stories, and indicating all of those variables would involve huge work.
+
+### Limitations
+
+The sample size of the data may be too small to predict the total culprits, which could make the result imprecise for verification. Moreover, since we didn’t test multiple models, there might be a better model that predict the number of culprits based on other predictor variables or other combinations.
+
+## Research Question 3: Bootstrap confidence interval 
+
+### Objective 
+
+As a group, we want to find out the plausible range of the mean value of the number of words for the detective stories. 
+
+### Question Description
+
+What is the range of plausible values for the average text words in the detective stories from early 1800s to early 1900s? 
+
+### Variabled Used
+
+- \textcolor{red}{text words}
+
+## Relevant Visualization
+
+```{r, echo=FALSE, fig.height=2, fig.width=4, fig.align='center'}
+ggplot(data = detectives_full_clean,aes(y=text_words))+
+  geom_boxplot()+
+  labs(title = 'Number of Text Words')
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(690)
+
+repetitions <- 1000
+
+results <- rep(NA,repetitions)
+
+n_obs <- nrow(detectives_full_clean)
+
+for (i in 1:repetitions) {
+  boot_samp <- sample_n(detectives_full_clean,size = n_obs,replace = TRUE)
+  
+  boot_mean <- boot_samp %>% 
+    summarise(mean_rank = mean(text_words)) %>% 
+    as.numeric()
+  
+  results[i] <- boot_mean
+}
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+results <- tibble(results)
+
+#quantile(na.omit(results$results), c(0.025,0.975))
+
+#detectives_full_clean %>% 
+ # summarise(mean =sum(detectives_full_clean$text_words)/nrow(detectives_full_clean), 
+            #min = min(detectives_full_clean$text_words), 
+            #max = max(detectives_full_clean$text_words))
+```
+
+## Exploration and Visualization(Continuing)
+
+- \textcolor{red}{Method}: bootstrap confidence interval \
+- Original data: detectives_full_clean with number of text words in the sample detective novels.\
+- Bootstrap sample:  boot_samp, which selects observations whose number is equal to original data with replacement. \
+-	Confidence interval: (7224.76, 7829.33)
+
+### Population
+
+The population for this specific research question is all the detective stories in the early 1800s to early 1900s. 
+
+### Visualization Description
+
+According to the boxplot, the text word number ranges from 2000 to 22500. The median is about 7000. The distribution is right-skewed, so the mean would be greater than median.\
+
+
+
+## Conclusion and Limitations
+
+### Conclusion and Interpretation
+
+According to the bootstrap sampling, we are 95% confident that the true mean text number of all detective novels/stories is between 7224.76 and 7829.33. This implies that authors around that period preferred to write relatively short novels and finished off early. Since we are selecting the mean, it is also possible that some of the authors tended to write long novels, while others write shorter ones.
+
+### Limitations
+
+Although we repeat 1000 trials in our bootstrap sampling method, there is still a probability that the confidence interval does not capture the true mean text numbers of the detective stories from early 1800s to early 1900s due to our relatively small sample size. 
+
+## Final Conclusion
+
+To sum up, we investigated three different research questions and provide three conclusions as well as interpretations respectively. \
+As we set up our analysis, some of the results turns out to be surprising.\
+We hope that our project could provide a unique insight to the audience as this research keeps producing some interesting fact from the perspective of detective novels in early 1800s to early 1900s. 
+
+
+## Reference 
+
+The dataset, detectives_full, is from detective_data.csv.\
+Thanks to Prof. Bolton and Caetano as well as Prof. Hammond and Stern\ 
+for letting us encounter the very special opportunity \
+to work with this program.\
+Thanks to TAs for answering our problems.
+
